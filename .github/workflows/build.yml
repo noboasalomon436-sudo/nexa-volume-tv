@@ -9,12 +9,61 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Organize Android resources automatically
+      - name: Setup standard Android project structure
         run: |
-          mkdir -p res/values
-          if [ -f strings.xml ]; then
-            mv -f strings.xml res/values/strings.xml
+          mkdir -p app/src/main/java app/src/main/res/values
+          
+          # Mover archivos Java a su carpeta
+          mv *.java app/src/main/java/ 2>/dev/null || true
+          
+          # Mover Manifest
+          if [ -f AndroidManifest.xml ]; then
+            mv AndroidManifest.xml app/src/main/
           fi
+          
+          # Mover recursos
+          if [ -f strings.xml ]; then
+            mv strings.xml app/src/main/res/values/
+          fi
+          if [ -d res ]; then
+            cp -r res/* app/src/main/res/ 2>/dev/null || true
+          fi
+
+          # Crear el build.gradle del módulo app automáticamente
+          cat << 'EOF' > app/build.gradle
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.nexaria.volumetv'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId "com.nexaria.volumetv"
+                  minSdk 21
+                  targetSdk 34
+                  versionCode 1
+                  versionName "1.0"
+              }
+
+              buildTypes {
+                  release {
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'com.google.android.material:material:1.9.0'
+          }
+          EOF
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -32,4 +81,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-debug
-          path: build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
